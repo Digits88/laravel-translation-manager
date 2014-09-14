@@ -28,7 +28,8 @@ class Manager{
 
     public function missingKey($namespace, $group, $key)
     {
-        if(!in_array($group, $this->config['exclude_groups'])) {
+        if (!in_array($group, $this->config['exclude_groups']))
+        {
             Translation::firstOrCreate(array(
                 'locale' => $this->app['config']['app.locale'],
                 'group' => $group,
@@ -40,44 +41,59 @@ class Manager{
     public function importTranslations($replace = false)
     {
         $counter = 0;
-        foreach($this->files->directories($this->app->make('path').'/lang') as $langPath){
-            $locale = basename($langPath);
 
-            foreach($this->files->files($langPath) as $file){
+	    foreach ($this->getLangPaths() as $path)
+	    {
+	        foreach ($this->files->directories($path) as $langPath)
+	        {
+	            $locale = basename($langPath);
 
-                $info = pathinfo($file);
-                $group = $info['filename'];
+	            foreach ($this->files->files($langPath) as $file)
+	            {
+	                $info = pathinfo($file);
 
-                if(in_array($group, $this->config['exclude_groups'])) {
-                    continue;
-                }
+	                $group = $info['filename'];
 
-                $translations = array_dot(\Lang::getLoader()->load($locale, $group));
-                foreach($translations as $key => $value){
-                    $value = (string) $value;
-                     $translation = Translation::firstOrNew(array(
-                        'locale' => $locale,
-                        'group' => $group,
-                        'key' => $key,
-                    ));
+	                if (in_array($group, $this->config['exclude_groups']))
+	                {
+	                    continue;
+	                }
 
-                    // Check if the database is different then the files
-                    $newStatus = $translation->value === $value ? Translation::STATUS_SAVED : Translation::STATUS_CHANGED;
-                    if($newStatus !== (int) $translation->status){
-                        $translation->status = $newStatus;
-                    }
+	                $translations = array_dot(\Lang::getLoader()->load($locale, $group));
 
-                    // Only replace when empty, or explicitly told so
-                    if($replace || !$translation->value){
-                        $translation->value = $value;
-                    }
+	                foreach ($translations as $key => $value)
+	                {
+	                    $value = (string) $value;
 
-                    $translation->save();
+	                    $translation = Translation::firstOrNew(array(
+	                        'locale' => $locale,
+	                        'group' => $group,
+	                        'key' => $key,
+	                        'path' => $path,
+	                    ));
 
-                    $counter++;
-                }
-            }
-        }
+	                    // Check if the database is different then the files
+	                    $newStatus = $translation->value === $value ? Translation::STATUS_SAVED : Translation::STATUS_CHANGED;
+
+	                    if ($newStatus !== (int) $translation->status)
+	                    {
+	                        $translation->status = $newStatus;
+	                    }
+
+	                    // Only replace when empty, or explicitly told so
+	                    if ($replace || !$translation->value)
+	                    {
+	                        $translation->value = $value;
+	                    }
+
+	                    $translation->save();
+
+	                    $counter++;
+	                }
+	            }
+	        }
+	    }
+
         return $counter;
     }
     
@@ -103,11 +119,14 @@ class Manager{
         $finder->in($path)->exclude('storage')->name('*.php')->name('*.twig')->files();
 
         /** @var \Symfony\Component\Finder\SplFileInfo $file */
-        foreach ($finder as $file) {
+        foreach ($finder as $file)
+        {
             // Search the current file for the pattern
-            if(preg_match_all("/$pattern/siU", $file->getContents(), $matches)) {
+            if (preg_match_all("/$pattern/siU", $file->getContents(), $matches))
+            {
                 // Get all matches
-                foreach ($matches[2] as $key) {
+                foreach ($matches[2] as $key)
+                {
                     $keys[] = $key;
                 }
             }
@@ -116,7 +135,8 @@ class Manager{
         $keys = array_unique($keys);
 
         // Add the translations to the database, if not existing.
-        foreach($keys as $key){
+        foreach ($keys as $key)
+        {
             // Split the group and item
             list($group, $item) = explode('.', $key, 2);
             $this->missingKey('', $group, $item);
@@ -128,21 +148,30 @@ class Manager{
     
     public function exportTranslations($group)
     {
-        if(!in_array($group, $this->config['exclude_groups'])) {
-            if($group == '*')
+        if (!in_array($group, $this->config['exclude_groups']))
+        {
+            if ($group == '*')
                 return $this->exportAllTranslations();
 
-            $tree = $this->makeTree(Translation::where('group', $group)->whereNotNull('value')->get());
+	        $paths = Translation::select('path')->groupBy('path')->get();
 
-            foreach($tree as $locale => $groups){
-                if(isset($groups[$group])){
-                    $translations = $groups[$group];
-                    $path = $this->app->make('path').'/lang/'.$locale.'/'.$group.'.php';
-                    $output = "<?php\n\nreturn ".var_export($translations, true).";\n";
-                    $this->files->put($path, $output);
-                }
-            }
-            Translation::where('group', $group)->whereNotNull('value')->update(array('status' => Translation::STATUS_SAVED));
+	        foreach ($paths as $path)
+	        {
+	            $tree = $this->makeTree(Translation::where('group', $group)->whereNotNull('value')->get());
+
+	            foreach ($tree as $locale => $groups)
+	            {
+	                if (isset($groups[$group]))
+	                {
+	                    $translations = $groups[$group];
+	                    $path = $path->path.'/'.$locale.'/'.$group.'.php';
+	                    $output = "<?php\n\nreturn ".var_export($translations, true).";\n";
+	                    $this->files->put($path, $output);
+	                }
+	            }
+
+	            Translation::where('group', $group)->whereNotNull('value')->update(array('status' => Translation::STATUS_SAVED));
+	        }
         }
     }
     
@@ -150,7 +179,8 @@ class Manager{
     {
         $groups = Translation::whereNotNull('value')->select(DB::raw('DISTINCT `group`'))->get('group');
 
-        foreach($groups as $group){
+        foreach ($groups as $group)
+        {
             $this->exportTranslations($group->group);
         }
     }
@@ -168,7 +198,8 @@ class Manager{
     protected function makeTree($translations)
     {
         $array = array();
-        foreach($translations as $translation){
+        foreach ($translations as $translation)
+        {
             array_set($array[$translation->locale][$translation->group], $translation->key, $translation->value);
         }
         return $array;
@@ -176,12 +207,18 @@ class Manager{
 
     public function getConfig($key = null)
     {
-        if($key == null) {
+        if ($key == null)
+        {
             return $this->config;
         }
         else {
             return $this->config[$key];
         }
     }
+
+	private function getLangPaths()
+	{
+		return $this->config['lang_paths'];
+	}
 
 }
