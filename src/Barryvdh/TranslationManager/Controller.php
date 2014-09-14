@@ -26,18 +26,18 @@ class Controller extends BaseController
         if($excludedGroups){
             $groups->whereNotIn('group', $excludedGroups);
         }
-        
+
+	    $paths = $this->makeShortPathsArray(Translation::select('path')->groupBy('path')->lists('path'));
+
         $groups = array(''=>'Choose a group') + $groups->lists('group', 'group');
         $numChanged = Translation::where('group', $group)->where('status', Translation::STATUS_CHANGED)->count();
-
 
         $allTranslations = Translation::where('group', $group)->orderBy('key', 'asc')->get();
         $numTranslations = count($allTranslations);
         $translations = array();
         foreach($allTranslations as $translation){
-            $translations[$translation->key][$translation->locale] = $translation;
+            $translations[$translation->path][$translation->key][$translation->locale] = $translation;
         }
-
 
         return \View::make('laravel-translation-manager::index')
             ->with('translations', $translations)
@@ -49,6 +49,7 @@ class Controller extends BaseController
             ->with('editUrl', URL::action(get_class($this).'@postEdit', array($group)))
             ->with('deleteEnabled', $this->manager->getConfig('delete_enabled'))
 	        ->with('token', \Session::token())
+	        ->with('paths', $paths)
             ;
     }
 
@@ -78,11 +79,12 @@ class Controller extends BaseController
             $name = Input::get('name');
             $value = Input::get('value');
 
-            list($locale, $key) = explode('|', $name, 2);
+            list($locale, $key, $path) = explode('|', $name, 3);
             $translation = Translation::firstOrNew(array(
                 'locale' => $locale,
                 'group' => $group,
                 'key' => $key,
+                'path' => $path,
             ));
             $translation->value = (string) $value ?: null;
             $translation->status = Translation::STATUS_CHANGED;
@@ -124,6 +126,51 @@ class Controller extends BaseController
 	public function getGroup($group)
 	{
 		return $this->getIndex($group);
+	}
+
+	private function makeShortPathsArray($paths)
+	{
+		if (count($paths) < 2)
+		{
+			$common = '';
+		}
+		else
+		{
+			$common = $paths[0];
+
+			while ($common)
+			{
+				$equal = true;
+
+				foreach($paths as $path)
+				{
+					if ( ! starts_with($path, $common))
+					{
+						$equal = false;
+
+						break;
+					}
+				}
+
+				if ($equal)
+				{
+					break;
+				}
+
+				$common = dirname($common);
+			}
+		}
+
+		$result = array();
+
+		foreach ($paths as $path)
+		{
+			$short = substr($path, strlen($common) + 1);
+
+			$result[$path] = $short;
+		}
+
+		return $result;
 	}
 
 }

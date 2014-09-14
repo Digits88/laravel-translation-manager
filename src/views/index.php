@@ -110,7 +110,8 @@
     <table class="table">
         <thead>
         <tr>
-            <th width="15%">Key</th>
+            <th width="15%">Path</th>
+	        <th width="15%">Key</th>
             <?php foreach($locales as $locale): ?>
                 <th><?= $locale ?></th>
             <?php endforeach; ?>
@@ -119,26 +120,27 @@
             <?php endif; ?>
         </tr>
         </thead>
+
         <tbody>
-
-        <?php foreach($translations as $key => $translation): ?>
-            <tr id="<?= $key ?>">
-                <td><?= $key ?></td>
-                <?php foreach($locales as $locale): ?>
-                    <?php $t = isset($translation[$locale]) ? $translation[$locale] : null?>
-
-                    <td>
-                        <a href="#edit" class="editable status-<?= $t ? $t->status : 0 ?> locale-<?= $locale ?>" data-locale="<?= $locale ?>" data-name="<?= $locale . "|" . $key ?>" id="username" data-type="textarea" data-pk="<?= $t ? $t->id : 0 ?>" data-url="<?= $editUrl.'?_token='.$token ?>" data-title="Enter translation"><?= $t ? htmlentities($t->value, ENT_QUOTES, 'UTF-8', false) : '' ?></a>
-                    </td>
-                <?php endforeach; ?>
-                <?php if($deleteEnabled): ?>
-                    <td>
-                        <a href="<?= action('Barryvdh\TranslationManager\Controller@postDelete', [$group, $key]) ?>" class="delete-key" data-method="POST" data-remote="true" data-confirm="Are you sure you want to delete the translations for '<?= $key ?>?"><span class="glyphicon glyphicon-trash"></span></a>
-                    </td>
-                <?php endif; ?>
-            </tr>
-        <?php endforeach; ?>
-
+	        <?php foreach($translations as $path => $keys): ?>
+		        <?php foreach($keys as $key => $translation): ?>
+			        <tr id="<?= $key ?>">
+				        <td><?= $paths[$path] ?></td>
+				        <td><?= $key ?></td>
+		                <?php foreach($locales as $locale): ?>
+		                    <?php $t = isset($translation[$locale]) ? $translation[$locale] : null ?>
+		                    <td>
+		                        <a href="#edit" class="editable status-<?= $t ? $t->status : 0 ?> locale-<?= $locale ?>" data-locale="<?= $locale ?>" data-name="<?= $locale . "|" . $key .  "|" . $path ?>" id="username" data-type="textarea" data-pk="<?= $t ? $t->id : 0 ?>" data-url="<?= $editUrl.'?_token='.$token ?>" data-title="Enter translation"><?= $t ? htmlentities($t->value, ENT_QUOTES, 'UTF-8', false) : '' ?></a>
+		                    </td>
+		                <?php endforeach; ?>
+				        <?php if($deleteEnabled): ?>
+					        <td>
+						        <a href="<?= action('Barryvdh\TranslationManager\Controller@postDelete', [$group, $key]) ?>" class="delete-key" data-method="POST" data-remote="true" data-confirm="Are you sure you want to delete the translations for '<?= $key ?>?"><span class="glyphicon glyphicon-trash"></span></a>
+					        </td>
+				        <?php endif; ?>
+			        </tr>
+		        <?php endforeach; ?>
+	        <?php endforeach; ?>
         </tbody>
     </table>
     <?php else: ?>

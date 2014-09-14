@@ -5,6 +5,7 @@ use Illuminate\Events\Dispatcher;
 use Barryvdh\TranslationManager\Models\Translation;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Translation\FileLoader;
 use Symfony\Component\Finder\Finder;
 
 class Manager{
@@ -52,6 +53,8 @@ class Manager{
 	            {
 	                $info = pathinfo($file);
 
+		            $loader = new FileLoader(\App::make('files'), $path);
+
 	                $group = $info['filename'];
 
 	                if (in_array($group, $this->config['exclude_groups']))
@@ -59,7 +62,7 @@ class Manager{
 	                    continue;
 	                }
 
-	                $translations = array_dot(\Lang::getLoader()->load($locale, $group));
+	                $translations = array_dot($loader->load($locale, $group));
 
 	                foreach ($translations as $key => $value)
 	                {
@@ -157,16 +160,16 @@ class Manager{
 
 	        foreach ($paths as $path)
 	        {
-	            $tree = $this->makeTree(Translation::where('group', $group)->whereNotNull('value')->get());
+	            $tree = $this->makeTree(Translation::where('path', $path->path)->where('group', $group)->whereNotNull('value')->get());
 
 	            foreach ($tree as $locale => $groups)
 	            {
 	                if (isset($groups[$group]))
 	                {
 	                    $translations = $groups[$group];
-	                    $path = $path->path.'/'.$locale.'/'.$group.'.php';
+	                    $filePath = $path->path.'/'.$locale.'/'.$group.'.php';
 	                    $output = "<?php\n\nreturn ".var_export($translations, true).";\n";
-	                    $this->files->put($path, $output);
+	                    $this->files->put($filePath, $output);
 	                }
 	            }
 
