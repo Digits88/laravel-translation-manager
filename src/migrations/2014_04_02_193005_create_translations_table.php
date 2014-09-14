@@ -16,6 +16,7 @@ class CreateTranslationsTable extends Migration {
         {
             $table->increments('id');
             $table->integer('status')->default(0);
+	        $table->string('path');
             $table->string('locale');
             $table->string('group');
             $table->string('key');

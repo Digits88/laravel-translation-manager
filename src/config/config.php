@@ -23,4 +23,12 @@ return array(
 	 */
 	'exclude_groups' => array(),
 
+	/**
+	 * Add all of your lang paths here.
+	 *
+	 * @type array
+	 *
+	 */
+
+	'lang_paths' => array( App::make('path').'/lang' ),
 );
