@@ -120,4 +120,10 @@ class Controller extends BaseController
 
         return Response::json(array('status' => 'ok'));
     }
+
+	public function getGroup($group)
+	{
+		return $this->getIndex($group);
+	}
+
 }
