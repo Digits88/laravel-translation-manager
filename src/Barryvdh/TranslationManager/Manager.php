@@ -45,56 +45,60 @@ class Manager{
 
 	    foreach ($this->getLangPaths() as $path)
 	    {
-	        foreach ($this->files->directories($path) as $langPath)
-	        {
-	            $locale = basename($langPath);
+		    if (file_exists($path))
+		    {
+		        foreach ($this->files->directories($path) as $langPath)
+		        {
+		            $locale = basename($langPath);
 
-	            foreach ($this->files->files($langPath) as $file)
-	            {
-	                $info = pathinfo($file);
+		            foreach ($this->files->files($langPath) as $file)
+		            {
+		                $info = pathinfo($file);
 
-		            $loader = new FileLoader(\App::make('files'), $path);
+			            $loader = new FileLoader(\App::make('files'), $path);
 
-	                $group = $info['filename'];
+		                $group = $info['filename'];
 
-	                if (in_array($group, $this->config['exclude_groups']))
-	                {
-	                    continue;
-	                }
+		                if (in_array($group, $this->config['exclude_groups']))
+		                {
+		                    continue;
+		                }
 
-	                $translations = array_dot($loader->load($locale, $group));
+		                $translations = array_dot($loader->load($locale, $group));
 
-	                foreach ($translations as $key => $value)
-	                {
-	                    $value = (string) $value;
+		                foreach ($translations as $key => $value)
+		                {
+		                    $value = (string) $value;
 
-	                    $translation = Translation::firstOrNew(array(
-	                        'locale' => $locale,
-	                        'group' => $group,
-	                        'key' => $key,
-	                        'path' => $path,
-	                    ));
+		                    $translation = Translation::firstOrNew(array(
+		                        'locale' => $locale,
+		                        'group' => $group,
+		                        'key' => $key,
+		                        'path' => $path,
+		                    ));
 
-	                    // Check if the database is different then the files
-	                    $newStatus = $translation->value === $value ? Translation::STATUS_SAVED : Translation::STATUS_CHANGED;
+		                    // Check if the database is different then the files
+		                    $newStatus = $translation->value === $value ? Translation::STATUS_SAVED : Translation::STATUS_CHANGED;
 
-	                    if ($newStatus !== (int) $translation->status)
-	                    {
-	                        $translation->status = $newStatus;
-	                    }
+		                    if ($newStatus !== (int) $translation->status)
+		                    {
+		                        $translation->status = $newStatus;
+		                    }
 
-	                    // Only replace when empty, or explicitly told so
-	                    if ($replace || !$translation->value)
-	                    {
-	                        $translation->value = $value;
-	                    }
+		                    // Only replace when empty, or explicitly told so
+		                    if ($replace || !$translation->value)
+		                    {
+		                        $translation->value = $value;
+		                    }
 
-	                    $translation->save();
+		                    $translation->save();
 
-	                    $counter++;
-	                }
-	            }
-	        }
+		                    $counter++;
+		                }
+		            }
+		        }
+		    }
+
 	    }
 
         return $counter;
